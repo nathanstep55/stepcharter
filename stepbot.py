@@ -29,13 +29,12 @@ except ImportError: # Python 3
 
 # ~~~~~ Configure these settings! ~~~~~
 gamemode = "dance_single" # the only gamemode right now, will default if unknown
-crossovers_one_foot_at_a_time = True # prevents afronova walk etc.
 crossover_between_measures = False # false to make an attempt at less awkward patterns
 random = False
 
 # Weights: Configure how often you want certain patterns to occur as a decimal
 crossovers = 0.1
-spins = 0.05
+spins = 0.05 # this doesn't necessarily mean a full spin
 footswitches = 0.05
 jacks = 0.1
 repeats = 0.35 # drills, triples, etc.
@@ -76,7 +75,35 @@ def get_gm_num(gm): # how many arrows per gamemode
         return gms[gm]
     else:
         return 4
-    
+
+def generate(note):
+    new = []
+    leftfoot = bool(randint(0,1))
+    lastnote = [0,0,0,0]
+    for a in range(len(note)):
+        temp = []
+        for b in range(len(note[a])):
+            next = [0,1,2,3]
+            if note[a][b] = [0,0,0,0]:
+                continue
+            if 2 in note[a][b]:
+                holds = [i for i, x in enumerate(note[a][b]) if x == 2]
+            if random:
+                n = randint(0,3)
+            else:
+                patterns = ['normal']*(100*normal) + ['crossovers']*(100*crossovers) + ['spins']*(100*spins) + ['footswitches']*(100*footswitches) + ['jacks']*(100*jacks) + ['repeats']*(100*repeats)
+                p = choice(patterns)
+                n = 0
+                if len(next) > 1:
+                    n = randint(0,len(next)-1)
+            if lastnote.count(1) + lastnote.count(2) > 1:
+                # this only handles one note i need to handle two notes
+                # probably random generation whether foot switches or not
+            temp.append() # note that it needs to be converted to the correct array
+            lastnote = next
+            leftfoot = not leftfoot
+        new.append(temp)
+        
 root = Tk()
 root.withdraw()
 path = filedialog.askopenfilename()
@@ -89,6 +116,8 @@ simlines = f.readlines()
 notes = get_notes(simlines) # convert notes split into arrays of measures split into arrays of beats
 print(notes)
 
+newchart = generate(notes)
+
 # We're going to have to keep track of two different arrays:
 # - old notes to keep track of holds
 # - new notes for new simfile
@@ -98,22 +127,31 @@ print(notes)
 # if random
 #   p = random
 # else
-#   patterns = ['normal']*normal + ['crossovers']*crossovers + ['spins']*spins + ['footswitches']*footswitches + ['jacks']*jacks + ['repeats']*repeats
+#   patterns = ['normal']*(100*normal) + ['crossovers']*(100*crossovers) + ['spins']*(100*spins) + ['footswitches']*(100*footswitches) + ['jacks']*(100*jacks) + ['repeats']*(100*repeats)
 #   p = choice(patterns)
 # - if random
 #   - randint(0,3)
+# - if normal
+#   - if leftfoot:
+#     - next.remove(L)
+#     - next.remove(R)
+#     - next.remove(3)
+#   - else:
+#     - next.remove(L)
+#     - next.remove(R)
+#     - next.remove(0)
 # - if footswitches
-#   - L and R positions should not be right after each other if 0 or 3
+#   - remove all but previous arrow on last foot if 1 or 2
 #   - also no crossover should happen (L cannot be 3, R cannot be 0)
-# - if not footswitches
-#   - L and R positions should never be right after each other
+# - if jacks
+#   - remove all but previous arrow on last foot
+#   - DO NOT CHANGE FOOT
 # - if crossovers
 #   - if L is 3 and R was 1 or 2
 #     - if spins
 #       - whatever
 #     - if not spins
 #       - R is 1 or 2 again
-# - if not crossovers
-#   - L should not be 3 and R should not be 0
+# - if repeats
 # - if more than one note left
 #   - randint(len(next))
