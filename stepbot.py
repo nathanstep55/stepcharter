@@ -10,6 +10,11 @@
     Also supports only one difficulty at the moment, but I will work on fixing that.
     
     Pump stepcharts are also planned, for 6-panel and 9-panel not sure because I have no clue how the patterns work in those games.
+
+    TO-DO:
+    StepBot is currently independent of how fast the notes are. This could cause problems (like 16th note jacks or spins).
+    There should be a check for the current index compared to the total amount of notes in a beat, and if the last played note was at least a specified interval,
+    it will remove those values from the pattern generator.
 '''
 
 # stuff to make compatible with Python 3
@@ -31,15 +36,24 @@ except ImportError: # Python 3
 gamemode = "dance_single" # the only gamemode right now, will default if unknown
 crossover_between_measures = False # doesn't work yet, but false to make an attempt at less awkward patterns
 random = False # completely random arrows, ignores patterns
+overwrite_with_hold_ends = False # if hold end gets in the way of algorithm, overwrite the note that would be there (False means that it will try to move the arrow to another spot)
 
 # Weights: Configure how often you want certain patterns to occur as a decimal
 # Note that if conditions are unmet for a pattern to occur, it will ignore the pattern (meaning it may happen less than expected)
 crossovers = 0.1
 spins = 0.05 # this doesn't necessarily mean a full spin
 footswitches = 0.05
-jacks = 0.1
+jacks = 0.05
 repeats = 0.35 # drills, triples, etc.
-#symmetrical_patterns - to be implemented
+
+# Disable patterns at certain fraction, to be implemented
+fenable = True
+fthreshold = 1/16
+fdisable_crossovers = False
+fdisable_spins = True
+fdisable_footswitches = False
+fdisable_jacks = True
+fdisable_repeats = False
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -84,15 +98,17 @@ def generate(note):
     leftfoot = bool(randint(0,1))
     lastset2 = [0,0,0,1] # set this to randint choice
     lastset = [1,0,0,0] # and make this the other one
+    fullholdlist = []
     for a in range(len(note)):
         temp = []
-        fullholdlist = []
         for b in range(len(note[a])):
             if note[a][b] == [0,0,0,0]:
                 temp.append([0,0,0,0])
                 continue
             nextlist = []
             holdlist = []
+            endlist = []
+            minelist = []
             realleftfoot = leftfoot
             for c in range(note[a][b].count('1')+note[a][b].count('2')): # gets all arrows
                 next = [0,1,2,3]
@@ -225,7 +241,12 @@ def generate(note):
                     elif p == ['footswitches']:
                         if leftfoot:
                             if R == 2 or R == 1:
-                                next = [R]
+                                if R not in nextlist:
+                                    next = [R]
+                                else:
+                                    tempn = [0,1,2,3]
+                                    tempn.remove(R)
+                                    next = choice(tempn)
                             else:
                                 if R == 0: # go back to last arrow
                                     lastlist2 = [i for i, x in enumerate(lastset2) if x == 1 or x == 2]
@@ -268,13 +289,18 @@ def generate(note):
                 if p != ['jacks']:
                     leftfoot = not leftfoot
             for e in range(note[a][b].count('2')): # holds
-                holdlist.append(nextlist[e])
+                holdlist.append(nextlist[e]) # holds and holdends only update the first set of arrows per beat, could be because holdlist and fullholdlist likely are strings instead of integers
                 fullholdlist.append(nextlist[e])
-            for f in range(note[a][b].count('3')): # holdend
-                ends = [i for i, x in enumerate(note[a][b]) if x == 3] # since it's a string idk if it will work
-                for g in ends:
-                    fullholdlist.remove(note[a][b][g])
-            nextset = num_to_arr(nextlist, holdlist)
+            for f in range(note[a][b].count('3')): # hold ends
+                print(fullholdlist)
+                endlist.append(fullholdlist[0])
+                fullholdlist.remove(fullholdlist[0])
+            mines = [i for i, x in enumerate(note[a][b]) if x == 'M'] # since it's a string idk if it will work
+            if mines != []:
+                print("Mines: " + str(mines))
+            for m in mines:
+                minelist.append(m)
+            nextset = num_to_arr(nextlist, holdlist, endlist, minelist)
             lastset2 = lastset
             lastset = nextset
             temp.append(nextset) # note that it needs to be converted to the correct array
@@ -282,12 +308,40 @@ def generate(note):
         new.append(temp)
     return new
 
-def num_to_arr(nextlist, holdlist):
+def num_to_arr(nextlist, holdlist, endlist, minelist):
     array = [0,0,0,0]
     for i in nextlist:
         array[i] = 1
     for j in holdlist:
         array[j] = 2
+    for m in minelist: # if for some reason all spots are filled nothing will happen (shouldn't ever happen but in case)
+        if len(nextlist+holdlist):
+            for i in nextlist+holdlist:
+                if m == i:
+                    if overwrite_with_hold_ends:
+                        array[m] = 3
+                    else:
+                        if array.count(0):
+                            zeroes = [i for i, x in enumerate(array) if x == 0]
+                            array[choice(zeroes)] = array[m]
+                            array[m] = 3
+        else:
+            array[m] = "M"
+    for k in endlist:
+        if len(nextlist+holdlist):
+            for i in nextlist+holdlist:
+                if k == i:
+                    if overwrite_with_hold_ends:
+                        array[k] = 3
+                    else:
+                        if not array.count(0): # if it can't do anything it will overwrite
+                            array[k] = 3
+                        else:
+                            zeroes = [i for i, x in enumerate(array) if x == 0]
+                            array[choice(zeroes)] = array[k]
+                            array[k] = 3
+        else:
+            array[k] = 3
     return ''.join(str(e) for e in array)
 
 def export(sim, new, path):
