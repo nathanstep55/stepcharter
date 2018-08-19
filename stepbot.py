@@ -6,15 +6,10 @@
     StepBot is a Python 2/3 program that will automatically generate stepchart patterns for your StepMania charts based on existing rhythm.
     This program ensures that your steps won't be repetitive, while maintaining the correct rhythm and cues in a song that full chart generators often miss.
     
-    Compatible with .sm files (and maybe .ssc files?), although I cannot guarantee that anything outside the 0,1,2,3,M spec will survive.
+    Compatible with .ssc files (and probably .sm files but is untested), however only the 0,1,2,3,4,M notes will survive at the moment (this will be fixed soon).
     Also supports only one difficulty at the moment, but I will work on fixing that.
     
     Pump stepcharts are also planned, for 6-panel and 9-panel not sure because I have no clue how the patterns work in those games.
-
-    TO-DO:
-    StepBot is currently independent of how fast the notes are. This could cause problems (like 16th note jacks or spins).
-    There should be a check for the current index compared to the total amount of notes in a beat, and if the last played note was at least a specified interval,
-    it will remove those values from the pattern generator.
 '''
 
 # stuff to make compatible with Python 3
