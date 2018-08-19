@@ -48,7 +48,7 @@ repeats = 0.35 # drills, triples, etc.
 
 # Disable patterns at certain fraction, to be implemented
 fenable = True
-fthreshold = 1/16
+fthreshold = 16 # put reciprocal of fraction (1/16 is 16 or 16/1)
 fdisable_crossovers = False
 fdisable_spins = True
 fdisable_footswitches = False
@@ -101,15 +101,25 @@ def generate(note):
     fullholdlist = []
     for a in range(len(note)):
         temp = []
+        lastmove = 0
         for b in range(len(note[a])):
             if note[a][b] == [0,0,0,0]:
                 temp.append([0,0,0,0])
                 continue
             nextlist = []
             holdlist = []
+            rolllist = []
             endlist = []
             minelist = []
             realleftfoot = leftfoot
+            if (b-lastmove/len(note[a])) <= (1/fthreshold) and (b-lastmove) >= 0: # if fraction threshold passed disable stuff
+                f_c = fdisable_crossovers
+                f_s = fdisable_spins
+                f_f = fdisable_footswitches
+                f_j = fdisable_jacks
+                f_r = fdisable_repeats
+            else:
+                f_c = f_s = f_f = f_j = f_r = False
             for c in range(note[a][b].count('1')+note[a][b].count('2')): # gets all arrows
                 next = [0,1,2,3]
                 for d in nextlist:
@@ -117,7 +127,12 @@ def generate(note):
                 if random:
                     n = randint(0,3)
                 if not random:
-                    patterns = ['normal']*int(100*normal) + ['crossovers']*int(100*crossovers) + ['spins']*int(100*spins) + ['footswitches']*int(100*footswitches) + ['jacks']*int(100*jacks) + ['repeats']*int(100*repeats)
+                    patterns =  ['normal']*int(100*normal) + \
+                                ['crossovers']*int(100*crossovers*int(not f_c)) + \
+                                ['spins']*int(100*spins*int(not f_s)) + \
+                                ['footswitches']*int(100*footswitches*int(not f_f)) + \
+                                ['jacks']*int(100*jacks*int(not f_j)) + \
+                                ['repeats']*int(100*repeats*int(not f_r))
                     p = choice(patterns)
                     if p == ['normal']: # to do: put all of these in functions to reduce redundant code
                         if leftfoot: # 0,1,2
@@ -289,34 +304,39 @@ def generate(note):
                 if p != ['jacks']:
                     leftfoot = not leftfoot
             for e in range(note[a][b].count('2')): # holds
-                holdlist.append(nextlist[e]) # holds and holdends only update the first set of arrows per beat, could be because holdlist and fullholdlist likely are strings instead of integers
+                holdlist.append(nextlist[e])
                 fullholdlist.append(nextlist[e])
-            for f in range(note[a][b].count('3')): # hold ends
-                print(fullholdlist)
+            if note[a][b].count('4'):
+                for f in range(note[a][b].count('2'),note[a][b].count('4')): # rolls (note that holds are first and then rolls follow)
+                    if nextlist[f] not in holdlist: # if there already isn't a hold there (failsafe)
+                        rolllist.append(nextlist[f])
+                        fullholdlist.append(nextlist[e])
+            for g in range(note[a][b].count('3')): # hold ends
                 endlist.append(fullholdlist[0])
                 fullholdlist.remove(fullholdlist[0])
             mines = [i for i, x in enumerate(note[a][b]) if x == 'M'] # since it's a string idk if it will work
-            if mines != []:
-                print("Mines: " + str(mines))
             for m in mines:
                 minelist.append(m)
-            nextset = num_to_arr(nextlist, holdlist, endlist, minelist)
+            nextset = num_to_arr(nextlist, holdlist, endlist, minelist, rolllist)
             lastset2 = lastset
             lastset = nextset
             temp.append(nextset) # note that it needs to be converted to the correct array
             leftfoot = not realleftfoot # multiple arrows it won't screw up step order
+            lastmove = b
         new.append(temp)
     return new
 
-def num_to_arr(nextlist, holdlist, endlist, minelist):
+def num_to_arr(nextlist, holdlist, endlist, minelist, rolllist):
     array = [0,0,0,0]
     for i in nextlist:
         array[i] = 1
     for j in holdlist:
         array[j] = 2
+    for r in rolllist:
+        array[r] = 4
     for m in minelist: # if for some reason all spots are filled nothing will happen (shouldn't ever happen but in case)
-        if len(nextlist+holdlist):
-            for i in nextlist+holdlist:
+        if len(nextlist+holdlist+rolllist):
+            for i in nextlist+holdlist+rolllist:
                 if m == i:
                     if overwrite_with_hold_ends:
                         array[m] = 3
@@ -328,8 +348,8 @@ def num_to_arr(nextlist, holdlist, endlist, minelist):
         else:
             array[m] = "M"
     for k in endlist:
-        if len(nextlist+holdlist):
-            for i in nextlist+holdlist:
+        if len(nextlist+holdlist+rolllist):
+            for i in nextlist+holdlist+rolllist:
                 if k == i:
                     if overwrite_with_hold_ends:
                         array[k] = 3
