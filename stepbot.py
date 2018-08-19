@@ -41,7 +41,7 @@ footswitches = 0.05
 jacks = 0.05
 repeats = 0.35 # drills, triples, etc.
 
-# Disable patterns at certain fraction, to be implemented
+# Disable patterns at certain fraction
 fenable = True
 fthreshold = 16 # put reciprocal of fraction (1/16 is 16 or 16/1)
 fdisable_crossovers = False
