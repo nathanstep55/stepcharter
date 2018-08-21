@@ -18,7 +18,7 @@ from builtins import input
 from io import open
 
 from random import randint, choice
-import sys, codecs
+import sys, codecs, argparse
 
 try: # Python 2
     from Tkinter import *
@@ -377,9 +377,20 @@ def export(sim, new, path):
             break
     e.close()
 
-root = Tk()
-root.withdraw()
-path = filedialog.askopenfilename()
+parser = argparse.ArgumentParser(description='Process some integers.')
+parser.add_argument('-i', action="store", dest="input", help='The input simfile to modify')
+parser.add_argument('-o', action="store", dest="output", help='The output simfile to export')
+
+args = parser.parse_args()
+
+if args.input == None or args.output == None:
+    root = Tk()
+    root.withdraw()
+
+if args.input != None:
+    path = args.input
+else:
+    path = filedialog.askopenfilename()
 
 f = codecs.open(path, 'r', encoding='UTF-8')
 print("File opened.")
@@ -387,48 +398,15 @@ print("File opened.")
 simlines = f.readlines()
 
 notes = get_notes(simlines) # convert notes split into arrays of measures split into arrays of beats
-print(notes)
+#print(notes)
 
 newchart = generate(notes)
 
-path2 = filedialog.asksaveasfilename()
+if args.output != None:
+    path2 = args.output
+else:
+    path2 = filedialog.asksaveasfilename()
+
 export(simlines, newchart, path2)
+f.close()
 print("Exported as simfile " + path2)
-
-# We're going to have to keep track of two different arrays:
-# - old notes to keep track of holds
-# - new notes for new simfile
-
-# Possibilities can be calculated either in a dictionary or with this code:
-# next = [0,1,2,3]
-# if random
-#   p = random
-# else
-#   patterns = ['normal']*(100*normal) + ['crossovers']*(100*crossovers) + ['spins']*(100*spins) + ['footswitches']*(100*footswitches) + ['jacks']*(100*jacks) + ['repeats']*(100*repeats)
-#   p = choice(patterns)
-# - if random
-#   - randint(0,3)
-# - if normal
-#   - if leftfoot:
-#     - next.remove(L)
-#     - next.remove(R)
-#     - next.remove(3)
-#   - else:
-#     - next.remove(L)
-#     - next.remove(R)
-#     - next.remove(0)
-# - if footswitches
-#   - remove all but previous arrow on last foot if 1 or 2
-#   - also no crossover should happen (L cannot be 3, R cannot be 0)
-# - if jacks
-#   - remove all but previous arrow on last foot
-#   - DO NOT CHANGE FOOT
-# - if crossovers
-#   - if L is 3 and R was 1 or 2
-#     - if spins
-#       - whatever
-#     - if not spins
-#       - R is 1 or 2 again
-# - if repeats
-# - if more than one note left
-#   - randint(len(next))
