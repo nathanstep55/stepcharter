@@ -94,6 +94,7 @@ def generate(note):
     L = 0
     R = 3
     leftfoot = bool(randint(0,1))
+    realleftfoot = leftfoot
     lastset = [1,0,0,0] # and make this the other one
     fullholdlist = []
     for a in range(len(note)):
@@ -136,7 +137,7 @@ def generate(note):
                             if leftfoot: # 0,1,2
                                 if Lsafe not in nextlist:
                                     next = [Lsafe]
-                                else:
+                                else: # this applies for jumps so i need to stop changing it
                                     tmpft = [x for x in range(0,3) if x not in nextlist]
                                     next = [choice(tmpft)]
                             else: # 1,2,3
@@ -328,13 +329,15 @@ def generate(note):
                         n = randint(0,len(next)-1)
                 nextlist.append(next[n])
                 if leftfoot:
-                    #print(a, b, p, next, n, L, R)
+                    if next[n] == R or next[n] == 3:
+                        print(a, b, p, next, n, L, R)
                     if next[n] == 3 and L != 3:
                         Lsafe = L
                     Llast = L
                     L = next[n]
                 else:
-                    #print(a, b, p, next, n, L, R)
+                    if next[n] == L or next[n] == 0:
+                        print(a, b, p, next, n, L, R)
                     if next[n] == 0 and R != 0:
                         Rsafe = R
                     Rlast = R
@@ -343,6 +346,7 @@ def generate(note):
                     leftfoot = not leftfoot
             for e in range(note[a][b].count('2')): # holds
                 if nextlist[e] in fullholdlist:
+                    #print("switch")
                     tmphold = [x for x in range(0,4) if x not in nextlist]
                     nextlist[e] = choice(tmphold)
                 holdlist.append(nextlist[e])
@@ -380,8 +384,7 @@ def num_to_arr(nextlist, holdlist, endlist, minelist, rolllist, fullholdlist):
                 if m == i:
                     if array.count(0):
                         zeroes = [i for i, x in enumerate(array) if x == 0]
-                        array[choice(zeroes)] = array[m]
-                        array[m] = "M"
+                        array[choice(zeroes)] = "M"
         else:
             array[m] = "M"
     #if len(endlist): print("endlist", endlist)
@@ -442,6 +445,8 @@ if args.input != None:
     path = args.input
 else:
     path = filedialog.askopenfilename()
+    if path == '':
+        sys.exit("Canceled.")
 
 f = codecs.open(path, 'r', encoding='UTF-8')
 print("File opened.")
@@ -457,6 +462,8 @@ if args.output != None:
     path2 = args.output
 else:
     path2 = filedialog.asksaveasfilename()
+    if path2 == '':
+        sys.exit("Canceled.")
 
 export(simlines, newchart, path2)
 f.close()
