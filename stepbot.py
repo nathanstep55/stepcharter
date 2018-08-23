@@ -40,7 +40,7 @@ crossovers = 0.1
 spins = 0.00 # this doesn't necessarily mean a full spin
 footswitches = 0.00
 jacks = 0.00
-repeats = 0.00 # drills, triples, etc.
+repeats = 0.1 # drills, triples, etc.
 
 # Disable patterns at certain fraction
 fenable = True
@@ -65,7 +65,7 @@ def get_notes(sim): # modified from jmania and is simpler because python is wayy
             notestr = ""
             for a in range(i+1,len(sim)):
                 if "     " not in sim[a]:
-                    notestr += sim[a].replace(";", "").replace('\n', '')
+                    notestr += sim[a].replace(";", "").replace('\n', '').replace('\r', '')
             noteslist = notestr.split(",")
             for b in range(len(noteslist)):
                 n = get_gm_num(gamemode)
@@ -148,11 +148,11 @@ def generate(note):
                                 if L not in nextlist:
                                     next = [L]
                                 else:
-                                    tmpft = [x for x in range(0,3) if x not in nextlist]
+                                    tmpft = [x for x in range(0,4) if x not in nextlist]
                                     next = [choice(tmpft)]
                             else:
                                 if len(nextlist):
-                                    tmpft = [x for x in range(0,3) if x not in nextlist]
+                                    tmpft = [x for x in range(0,4) if x not in nextlist]
                                     next = [choice(tmpft)]
                                 else:
                                     if 3 in next:
@@ -166,11 +166,11 @@ def generate(note):
                                 if R not in nextlist:
                                     next = [R]
                                 else:
-                                    tmpft = [x for x in range(1,4) if x not in nextlist]
+                                    tmpft = [x for x in range(0,4) if x not in nextlist]
                                     next = [choice(tmpft)]
                             else:
                                 if len(nextlist):
-                                    tmpft = [x for x in range(1,4) if x not in nextlist]
+                                    tmpft = [x for x in range(0,4) if x not in nextlist]
                                     next = [choice(tmpft)]
                                 else:
                                     if 3 in next:
@@ -459,7 +459,7 @@ print("File opened.")
 simlines = f.readlines()
 
 notes = get_notes(simlines) # convert notes split into arrays of measures split into arrays of beats
-#print(notes)
+print(notes)
 
 newchart = generate(notes)
 
