@@ -10,9 +10,10 @@
     Also supports only one difficulty at the moment, but I will work on fixing that.
     
     Pump stepcharts are also planned, for 6-panel and 9-panel not sure because I have no clue how the patterns work in those games.
+    Once I have implemented multiple gamemodes you will be able to convert existing charts into the gamemode of your choice.
 '''
 
-# stuff to make compatible with Python 3
+# stuff to make compatible with Python 2 and 3
 from __future__ import print_function
 from builtins import input
 from io import open
@@ -35,11 +36,11 @@ overwrite_with_hold_ends = False # if hold end gets in the way of algorithm, ove
 
 # Weights: Configure how often you want certain patterns to occur as a decimal
 # Note that if conditions are unmet for a pattern to occur, it will ignore the pattern (meaning it may happen less than expected)
-crossovers = 0.1
-spins = 0.05 # this doesn't necessarily mean a full spin
-footswitches = 0.05
-jacks = 0.05
-repeats = 0.35 # drills, triples, etc.
+crossovers = 0.00
+spins = 0.00 # this doesn't necessarily mean a full spin
+footswitches = 0.00
+jacks = 0.00
+repeats = 0.2 # drills, triples, etc.
 
 # Disable patterns at certain fraction
 fenable = True
@@ -88,10 +89,11 @@ def get_gm_num(gm): # how many arrows per gamemode
 
 def generate(note):
     new = []
+    Llast = 0
+    Rlast = 3
     L = 0
     R = 3
     leftfoot = bool(randint(0,1))
-    lastset2 = [0,0,0,1] # set this to randint choice
     lastset = [1,0,0,0] # and make this the other one
     fullholdlist = []
     for a in range(len(note)):
@@ -121,7 +123,7 @@ def generate(note):
                     next.remove(d)
                 if random:
                     n = randint(0,3)
-                if not random:
+                elif not random:
                     patterns =  ['normal']*int(100*normal) + \
                                 ['crossovers']*int(100*crossovers*int(not f_c)) + \
                                 ['spins']*int(100*spins*int(not f_s)) + \
@@ -129,176 +131,220 @@ def generate(note):
                                 ['jacks']*int(100*jacks*int(not f_j)) + \
                                 ['repeats']*int(100*repeats*int(not f_r))
                     p = choice(patterns)
-                    if p == ['normal']: # to do: put all of these in functions to reduce redundant code
-                        if leftfoot: # 0,1,2
-                            if R == 0: # go back to last arrow
-                                lastlist2 = [i for i, x in enumerate(lastset2) if x == 1 or x == 2]
-                                if [lastlist2[len(lastlist2)-1]] in nextlist:
-                                    next = [lastlist2[len(lastlist2)-1]]
-                                else:
-                                    next = [randint(0,3)]
-                            else:
-                                next.remove(3)
-                                next.remove(L)
-                                next.remove(R)
-                        else: # 1,2,3
-                            if L == 3:  # go back to last arrow
-                                lastlist2 = [i for i, x in enumerate(lastset2) if x == 1 or x == 2]
-                                if [lastlist2[0]] in nextlist:
-                                    next = [lastlist2[0]]
-                                else:
-                                    next = [randint(0,3)]
-                            else:
-                                next.remove(0)
-                                next.remove(L)
-                                next.remove(R)
-                    elif p == ['crossovers']: # this will not start a crossover if it just happened (unless afronova walk)
+                    if p == 'normal': # to do: put all of these in functions to reduce redundant code
                         if L == 3 and R == 0:
                             if leftfoot: # 0,1,2
-                                if R == 0: # go back to last arrow
-                                    lastlist2 = [i for i, x in enumerate(lastset2) if x == 1 or x == 2]
-                                    if [lastlist2[len(lastlist2)-1]] in nextlist:
-                                        next = [lastlist2[len(lastlist2)-1]]
-                                    else:
-                                        next = [randint(0,3)]
+                                if Lsafe not in nextlist:
+                                    next = [Lsafe]
                                 else:
-                                    next.remove(3)
-                                    next.remove(L)
-                                    next.remove(R)
+                                    tmpft = [x for x in range(0,3) if x not in nextlist]
+                                    next = [choice(tmpft)]
                             else: # 1,2,3
-                                if L == 3:  # go back to last arrow
-                                    lastlist2 = [i for i, x in enumerate(lastset2) if x == 1 or x == 2]
-                                    if [lastlist2[0]] in nextlist:
-                                        next = [lastlist2[0]]
-                                    else:
-                                        next = [randint(0,3)]
+                                if Rsafe not in nextlist:
+                                    next = [Rsafe]
                                 else:
-                                    next.remove(0)
+                                    tmpft = [x for x in range(1,4) if x not in nextlist]
+                                    next = [choice(tmpft)]
+                        if leftfoot: # 0,1,2
+                            if R == 0: # go back to last arrow
+                                if L not in nextlist:
+                                    next = [L]
+                                else:
+                                    tmpft = [x for x in range(0,3) if x not in nextlist]
+                                    next = [choice(tmpft)]
+                            else:
+                                if 3 in next:
+                                    next.remove(3)
+                                if L in next:
                                     next.remove(L)
+                                if R in next:
                                     next.remove(R)
+                        else: # 1,2,3
+                            if L == 3:  # go back to last arrow
+                                if R not in nextlist:
+                                    next = [R]
+                                else:
+                                    tmpft = [x for x in range(1,4) if x not in nextlist]
+                                    next = [choice(tmpft)]
+                            else:
+                                if 0 in next:
+                                    next.remove(0)
+                                if L in next:
+                                    next.remove(L)
+                                if R in next:
+                                    next.remove(R)
+                    elif p == 'crossovers': # this will not start a crossover if it just happened (unless afronova walk)
+                        if L == 3 and R == 0:
+                            if leftfoot: # 0,1,2
+                                if Lsafe not in nextlist:
+                                    next = [Lsafe]
+                                else:
+                                    tmpft = [x for x in range(0,3) if x not in nextlist]
+                                    next = [choice(tmpft)]
+                            else: # 1,2,3
+                                if Rsafe not in nextlist:
+                                    next = [Rsafe]
+                                else:
+                                    tmpft = [x for x in range(1,4) if x not in nextlist]
+                                    next = [choice(tmpft)]
                         else: # idk if this works
                             if leftfoot and R != 3:
                                 if 3 not in nextlist:
                                     next = [3]
                                 else:
-                                    next = [randint(0,3)]
+                                    tmpft = [x for x in range(0,3) if x not in nextlist]
+                                    next = [choice(tmpft)]
                             elif not leftfoot and L != 0:
                                 if 0 not in nextlist:
                                     next = [0]
                                 else:
-                                    next = [randint(0,3)]
+                                    tmpft = [x for x in range(1,4) if x not in nextlist]
+                                    next = [choice(tmpft)]
                             else:
                                 if leftfoot: # 0,1,2
                                     if R == 0: # go back to last arrow
-                                        lastlist2 = [i for i, x in enumerate(lastset2) if x == 1 or x == 2]
-                                        if [lastlist2[len(lastlist2)-1]] in nextlist:
-                                            next = [lastlist2[len(lastlist2)-1]]
+                                        if L not in nextlist:
+                                            next = [L]
                                         else:
-                                            next = [randint(0,3)]
+                                            tmpft = [x for x in range(0,3) if x not in nextlist]
+                                            next = [choice(tmpft)]
                                     else:
-                                        next.remove(3)
-                                        next.remove(L)
-                                        next.remove(R)
+                                        if 3 in next:
+                                            next.remove(3)
+                                        if L in next:
+                                            next.remove(L)
+                                        if R in next:
+                                            next.remove(R)
                                 else: # 1,2,3
                                     if L == 3:  # go back to last arrow
-                                        lastlist2 = [i for i, x in enumerate(lastset2) if x == 1 or x == 2]
-                                        if [lastlist2[0]] in nextlist:
-                                            next = [lastlist2[0]]
+                                        if R not in nextlist:
+                                            next = [R]
                                         else:
-                                            next = [randint(0,3)]
+                                            tmpft = [x for x in range(1,4) if x not in nextlist]
+                                            next = [choice(tmpft)]
                                     else:
-                                        next.remove(0)
-                                        next.remove(L)
-                                        next.remove(R)
-                    elif p == ['spins']: # not necessarily a spin but
+                                        if 0 in next:
+                                            next.remove(0)
+                                        if L in next:
+                                            next.remove(L)
+                                        if R in next:
+                                            next.remove(R)
+                    elif p == 'spins': # not necessarily a spin but
                         if leftfoot and R == 0:
                             if L == 2:
                                 next = [1]
                             elif L == 1:
                                 next = [2]
                             else:
-                                next = [randint(1,3)]
+                                tmpft = [x for x in range(0,4) if x not in nextlist]
+                                next = [choice(tmpft)]
                         elif not leftfoot and L == 3:
                             if R == 2:
                                 next = [1]
                             elif R == 1:
                                 next = [2]
                             else:
-                                next = [randint(1,3)]
-                        else:
-                            if leftfoot: # 0,1,2
-                                if R == 0: # go back to last arrow
-                                    lastlist2 = [i for i, x in enumerate(lastset2) if x == 1 or x == 2]
-                                    if [lastlist2[len(lastlist2)-1]] in next:
-                                        next = [lastlist2[len(lastlist2)-1]]
-                                    else:
-                                        next = [randint(0,3)]
+                                tmpft = [x for x in range(0,4) if x not in nextlist]
+                                next = [choice(tmpft)]
+                        elif leftfoot: # 0,1,2
+                            if R == 0: # go back to last arrow
+                                if L not in nextlist:
+                                    next = [L]
                                 else:
+                                    tmpft = [x for x in range(0,3) if x not in nextlist]
+                                    next = [choice(tmpft)]
+                            else:
+                                if 3 in next:
                                     next.remove(3)
+                                if L in next:
                                     next.remove(L)
+                                if R in next:
                                     next.remove(R)
-                            else: # 1,2,3
-                                if L == 3:  # go back to last arrow
-                                    lastlist2 = [i for i, x in enumerate(lastset2) if x == 1 or x == 2]
-                                    if [lastlist2[0]] in next:
-                                        next = [lastlist2[0]]
-                                    else:
-                                        next = [randint(0,3)]
+                        else: # 1,2,3
+                            if L == 3:  # go back to last arrow
+                                if R not in nextlist:
+                                    next = [R]
                                 else:
+                                    tmpft = [x for x in range(1,4) if x not in nextlist]
+                                    next = [choice(tmpft)]
+                            else:
+                                if 0 in next:
                                     next.remove(0)
+                                if L in next:
                                     next.remove(L)
+                                if R in next:
                                     next.remove(R)
-                    elif p == ['footswitches']:
+                    elif p == 'footswitches':
                         if leftfoot:
                             if R == 2 or R == 1:
                                 if R not in nextlist:
                                     next = [R]
                                 else:
-                                    tempn = [0,1,2,3]
-                                    tempn.remove(R)
-                                    next = choice(tempn)
+                                    tmpft = [x for x in range(0,4) if x != R]
+                                    next = choice(tmpft)
                             else:
                                 if R == 0: # go back to last arrow
-                                    lastlist2 = [i for i, x in enumerate(lastset2) if x == 1 or x == 2]
-                                    next = [lastlist2[len(lastlist2)-1]]
+                                    if L not in nextlist:
+                                        next = [L]
+                                    else:
+                                        tmpft = [x for x in range(0,3) if x not in nextlist]
+                                        next = [choice(tmpft)]
                                 else:
-                                    next.remove(3)
-                                    next.remove(L)
-                                    next.remove(R)
+                                    if 3 in next:
+                                        next.remove(3)
+                                    if L in next:
+                                        next.remove(L)
+                                    if R in next:
+                                        next.remove(R)
                         else:
                             if L == 2 or L == 1:
                                 next = [L]
                             else:
                                 if L == 3:  # go back to last arrow
-                                    lastlist2 = [i for i, x in enumerate(lastset2) if x == 1 or x == 2]
-                                    next = [lastlist2[0]]
+                                    if R not in nextlist:
+                                        next = [R]
+                                    else:
+                                        tmpft = [x for x in range(1,4) if x not in nextlist]
+                                        next = [choice(tmpft)]
                                 else:
-                                    next.remove(0)
-                                    next.remove(L)
-                                    next.remove(R)
-                    elif p == ['jacks']:
-                        lastlist = [i for i, x in enumerate(lastset) if x == 1 or x == 2]
+                                    if 0 in next:
+                                        next.remove(0)
+                                    if L in next:
+                                        next.remove(L)
+                                    if R in next:
+                                        next.remove(R)
+                    elif p == 'jacks':
                         if leftfoot: # do left again
-                            next = [lastlist[0]]
+                            next = [L]
                         else: # right again
-                            next = [lastlist[len(lastlist)-1]]
-                    elif p == ['repeats']:
-                        lastlist2 = [i for i, x in enumerate(lastset2) if x == 1 or x == 2]
-                        if leftfoot: # do right
-                            next = [lastlist2[len(lastlist2)-1]]
-                        else: # left
-                            next = [lastlist2[0]]
+                            next = [R]
+                    elif p == 'repeats':
+                        if leftfoot: # do last left
+                            next = [L]
+                        else: # last right
+                            next = [R]
                     n = 0
                     if len(next) > 1:
                         n = randint(0,len(next)-1)
                 nextlist.append(next[n])
-                if leftfoot: # so this needs to be fixed plus same note cannot happen twice
+                if leftfoot:
+                    #print(a, b, p, next, n, L, R)
+                    if next[n] == 3 and L != 3:
+                        Lsafe = L
+                    Llast = L
                     L = next[n]
                 else:
+                    #print(a, b, p, next, n, L, R)
+                    if next[n] == 0 and R != 0:
+                        Rsafe = R
+                    Rlast = R
                     R = next[n]
                 if p != ['jacks']:
                     leftfoot = not leftfoot
             for e in range(note[a][b].count('2')): # holds
+                if nextlist[e] in fullholdlist:
+                    tmphold = [x for x in range(0,4) if x not in nextlist]
+                    nextlist[e] = choice(tmphold)
                 holdlist.append(nextlist[e])
                 fullholdlist.append(nextlist[e])
             if note[a][b].count('4'):
@@ -312,8 +358,7 @@ def generate(note):
             mines = [i for i, x in enumerate(note[a][b]) if x == 'M'] # since it's a string idk if it will work
             for m in mines:
                 minelist.append(m)
-            nextset = num_to_arr(nextlist, holdlist, endlist, minelist, rolllist)
-            lastset2 = lastset
+            nextset = num_to_arr(nextlist, holdlist, endlist, minelist, rolllist, fullholdlist)
             lastset = nextset
             temp.append(nextset) # note that it needs to be converted to the correct array
             leftfoot = not realleftfoot # multiple arrows it won't screw up step order
@@ -321,7 +366,7 @@ def generate(note):
         new.append(temp)
     return new
 
-def num_to_arr(nextlist, holdlist, endlist, minelist, rolllist):
+def num_to_arr(nextlist, holdlist, endlist, minelist, rolllist, fullholdlist):
     array = [0,0,0,0]
     for i in nextlist:
         array[i] = 1
@@ -333,18 +378,16 @@ def num_to_arr(nextlist, holdlist, endlist, minelist, rolllist):
         if len(nextlist+holdlist+rolllist):
             for i in nextlist+holdlist+rolllist:
                 if m == i:
-                    if overwrite_with_hold_ends:
-                        array[m] = 3
-                    else:
-                        if array.count(0):
-                            zeroes = [i for i, x in enumerate(array) if x == 0]
-                            array[choice(zeroes)] = array[m]
-                            array[m] = 3
+                    if array.count(0):
+                        zeroes = [i for i, x in enumerate(array) if x == 0]
+                        array[choice(zeroes)] = array[m]
+                        array[m] = "M"
         else:
             array[m] = "M"
+    #if len(endlist): print("endlist", endlist)
     for k in endlist:
-        if len(nextlist+holdlist+rolllist):
-            for i in nextlist+holdlist+rolllist:
+        if len(nextlist+fullholdlist+rolllist+minelist):
+            for i in nextlist+fullholdlist+rolllist+minelist:
                 if k == i:
                     if overwrite_with_hold_ends:
                         array[k] = 3
@@ -353,10 +396,16 @@ def num_to_arr(nextlist, holdlist, endlist, minelist, rolllist):
                             array[k] = 3
                         else:
                             zeroes = [i for i, x in enumerate(array) if x == 0]
-                            array[choice(zeroes)] = array[k]
+                            value = choice(zeroes)
+                            for i in range(len(fullholdlist)):
+                                if array[k] == fullholdlist[i]:
+                                    fullholdlist[i] = array[value]
+                            array[value] = array[k]
                             array[k] = 3
+            array[k] = 3
         else:
             array[k] = 3
+    #if len(endlist): print(array)
     return ''.join(str(e) for e in array)
 
 def export(sim, new, path):
@@ -364,16 +413,18 @@ def export(sim, new, path):
     for i in range(len(sim)):
         e.write(sim[i])
         if "#NOTES:" in sim[i]:
-            for a in range(i,len(sim)):
+            for a in range(i+1,len(sim)):
                 if "     " not in sim[a]:
                     break
+                else:
+                    e.write(sim[a])
             for b in range(len(new)):
                 for c in range(len(new[b])):
                     e.write(new[b][c]+"\n")
                 if b != len(new)-1:
                     e.write(",\n")
                 else:
-                    e.write(";")
+                    e.write(";\n")
             break
     e.close()
 
