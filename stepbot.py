@@ -30,17 +30,17 @@ except ImportError: # Python 3
 
 # ~~~~~ Configure these settings! ~~~~~
 gamemode = "dance_single" # the only gamemode right now, will default if unknown
-crossover_between_measures = False # doesn't work yet, but false to make an attempt at less awkward patterns
+afronova_off = False # disables afronova walk (hopefully i'll make it a chance later)
 random = False # completely random arrows, ignores patterns
 overwrite_with_hold_ends = False # if hold end gets in the way of algorithm, overwrite the note that would be there (False means that it will try to move the arrow to another spot)
 
 # Weights: Configure how often you want certain patterns to occur as a decimal
 # Note that if conditions are unmet for a pattern to occur, it will ignore the pattern (meaning it may happen less than expected)
-crossovers = 0.00
+crossovers = 0.1
 spins = 0.00 # this doesn't necessarily mean a full spin
 footswitches = 0.00
 jacks = 0.00
-repeats = 0.2 # drills, triples, etc.
+repeats = 0.00 # drills, triples, etc.
 
 # Disable patterns at certain fraction
 fenable = True
@@ -89,20 +89,17 @@ def get_gm_num(gm): # how many arrows per gamemode
 
 def generate(note):
     new = []
-    Llast = 0
-    Rlast = 3
-    L = 0
-    R = 3
+    L, R = Llast, Rlast = Lsafe, Rsafe = 0, 3
     leftfoot = bool(randint(0,1))
     realleftfoot = leftfoot
     lastset = [1,0,0,0] # and make this the other one
     fullholdlist = []
     for a in range(len(note)):
         temp = []
-        lastmove = 0
+        lastmove = -1
         for b in range(len(note[a])):
-            if note[a][b] == [0,0,0,0]:
-                temp.append([0,0,0,0])
+            if note[a][b] == "0000":
+                temp.append("0000")
                 continue
             nextlist = []
             holdlist = []
@@ -110,7 +107,7 @@ def generate(note):
             endlist = []
             minelist = []
             realleftfoot = leftfoot
-            if (b-lastmove/len(note[a])) <= (1/fthreshold) and (b-lastmove) >= 0: # if fraction threshold passed disable stuff
+            if float(b-lastmove)/len(note[a]) <= (1/fthreshold) and (b-lastmove) >= 0: # if fraction threshold passed disable stuff
                 f_c = fdisable_crossovers
                 f_s = fdisable_spins
                 f_f = fdisable_footswitches
@@ -118,7 +115,7 @@ def generate(note):
                 f_r = fdisable_repeats
             else:
                 f_c = f_s = f_f = f_j = f_r = False
-            for c in range(note[a][b].count('1')+note[a][b].count('2')): # gets all arrows
+            for c in range(note[a][b].count('1')+note[a][b].count('2')+note[a][b].count('4')): # gets all arrows
                 next = [0,1,2,3]
                 for d in nextlist:
                     next.remove(d)
@@ -138,15 +135,15 @@ def generate(note):
                                 if Lsafe not in nextlist:
                                     next = [Lsafe]
                                 else: # this applies for jumps so i need to stop changing it
-                                    tmpft = [x for x in range(0,3) if x not in nextlist]
+                                    tmpft = [x for x in range(0,4) if x not in nextlist]
                                     next = [choice(tmpft)]
                             else: # 1,2,3
                                 if Rsafe not in nextlist:
                                     next = [Rsafe]
                                 else:
-                                    tmpft = [x for x in range(1,4) if x not in nextlist]
+                                    tmpft = [x for x in range(0,4) if x not in nextlist]
                                     next = [choice(tmpft)]
-                        if leftfoot: # 0,1,2
+                        elif leftfoot: # 0,1,2
                             if R == 0: # go back to last arrow
                                 if L not in nextlist:
                                     next = [L]
@@ -154,12 +151,16 @@ def generate(note):
                                     tmpft = [x for x in range(0,3) if x not in nextlist]
                                     next = [choice(tmpft)]
                             else:
-                                if 3 in next:
-                                    next.remove(3)
-                                if L in next:
-                                    next.remove(L)
-                                if R in next:
-                                    next.remove(R)
+                                if len(nextlist):
+                                    tmpft = [x for x in range(0,3) if x not in nextlist]
+                                    next = [choice(tmpft)]
+                                else:
+                                    if 3 in next:
+                                        next.remove(3)
+                                    if L in next:
+                                        next.remove(L)
+                                    if R in next:
+                                        next.remove(R)
                         else: # 1,2,3
                             if L == 3:  # go back to last arrow
                                 if R not in nextlist:
@@ -168,35 +169,39 @@ def generate(note):
                                     tmpft = [x for x in range(1,4) if x not in nextlist]
                                     next = [choice(tmpft)]
                             else:
-                                if 0 in next:
-                                    next.remove(0)
-                                if L in next:
-                                    next.remove(L)
-                                if R in next:
-                                    next.remove(R)
+                                if len(nextlist):
+                                    tmpft = [x for x in range(1,4) if x not in nextlist]
+                                    next = [choice(tmpft)]
+                                else:
+                                    if 3 in next:
+                                        next.remove(0)
+                                    if L in next:
+                                        next.remove(L)
+                                    if R in next:
+                                        next.remove(R)
                     elif p == 'crossovers': # this will not start a crossover if it just happened (unless afronova walk)
                         if L == 3 and R == 0:
                             if leftfoot: # 0,1,2
                                 if Lsafe not in nextlist:
                                     next = [Lsafe]
                                 else:
-                                    tmpft = [x for x in range(0,3) if x not in nextlist]
+                                    tmpft = [x for x in range(0,4) if x not in nextlist]
                                     next = [choice(tmpft)]
                             else: # 1,2,3
                                 if Rsafe not in nextlist:
                                     next = [Rsafe]
                                 else:
-                                    tmpft = [x for x in range(1,4) if x not in nextlist]
+                                    tmpft = [x for x in range(0,4) if x not in nextlist]
                                     next = [choice(tmpft)]
                         else: # idk if this works
                             if leftfoot and R != 3:
-                                if 3 not in nextlist:
+                                if 3 not in nextlist and L != 3:
                                     next = [3]
                                 else:
-                                    tmpft = [x for x in range(0,3) if x not in nextlist]
+                                    tmpft = [x for x in range(0,4) if x not in nextlist]
                                     next = [choice(tmpft)]
                             elif not leftfoot and L != 0:
-                                if 0 not in nextlist:
+                                if 0 not in nextlist and R != 0:
                                     next = [0]
                                 else:
                                     tmpft = [x for x in range(1,4) if x not in nextlist]
@@ -207,7 +212,7 @@ def generate(note):
                                         if L not in nextlist:
                                             next = [L]
                                         else:
-                                            tmpft = [x for x in range(0,3) if x not in nextlist]
+                                            tmpft = [x for x in range(0,4) if x not in nextlist]
                                             next = [choice(tmpft)]
                                     else:
                                         if 3 in next:
@@ -221,7 +226,7 @@ def generate(note):
                                         if R not in nextlist:
                                             next = [R]
                                         else:
-                                            tmpft = [x for x in range(1,4) if x not in nextlist]
+                                            tmpft = [x for x in range(0,4) if x not in nextlist]
                                             next = [choice(tmpft)]
                                     else:
                                         if 0 in next:
@@ -252,7 +257,7 @@ def generate(note):
                                 if L not in nextlist:
                                     next = [L]
                                 else:
-                                    tmpft = [x for x in range(0,3) if x not in nextlist]
+                                    tmpft = [x for x in range(0,4) if x not in nextlist]
                                     next = [choice(tmpft)]
                             else:
                                 if 3 in next:
@@ -266,7 +271,7 @@ def generate(note):
                                 if R not in nextlist:
                                     next = [R]
                                 else:
-                                    tmpft = [x for x in range(1,4) if x not in nextlist]
+                                    tmpft = [x for x in range(0,4) if x not in nextlist]
                                     next = [choice(tmpft)]
                             else:
                                 if 0 in next:
@@ -288,7 +293,7 @@ def generate(note):
                                     if L not in nextlist:
                                         next = [L]
                                     else:
-                                        tmpft = [x for x in range(0,3) if x not in nextlist]
+                                        tmpft = [x for x in range(0,4) if x not in nextlist]
                                         next = [choice(tmpft)]
                                 else:
                                     if 3 in next:
@@ -305,7 +310,7 @@ def generate(note):
                                     if R not in nextlist:
                                         next = [R]
                                     else:
-                                        tmpft = [x for x in range(1,4) if x not in nextlist]
+                                        tmpft = [x for x in range(0,4) if x not in nextlist]
                                         next = [choice(tmpft)]
                                 else:
                                     if 0 in next:
@@ -329,16 +334,16 @@ def generate(note):
                         n = randint(0,len(next)-1)
                 nextlist.append(next[n])
                 if leftfoot:
-                    if next[n] == R or next[n] == 3:
+                    if next[n] == R:
                         print(a, b, p, next, n, L, R)
-                    if next[n] == 3 and L != 3:
+                    if L != 3:
                         Lsafe = L
                     Llast = L
                     L = next[n]
                 else:
-                    if next[n] == L or next[n] == 0:
+                    if next[n] == L:
                         print(a, b, p, next, n, L, R)
-                    if next[n] == 0 and R != 0:
+                    if R != 0:
                         Rsafe = R
                     Rlast = R
                     R = next[n]
@@ -346,7 +351,6 @@ def generate(note):
                     leftfoot = not leftfoot
             for e in range(note[a][b].count('2')): # holds
                 if nextlist[e] in fullholdlist:
-                    #print("switch")
                     tmphold = [x for x in range(0,4) if x not in nextlist]
                     nextlist[e] = choice(tmphold)
                 holdlist.append(nextlist[e])
@@ -365,7 +369,8 @@ def generate(note):
             nextset = num_to_arr(nextlist, holdlist, endlist, minelist, rolllist, fullholdlist)
             lastset = nextset
             temp.append(nextset) # note that it needs to be converted to the correct array
-            leftfoot = not realleftfoot # multiple arrows it won't screw up step order
+            if len(nextlist+holdlist+minelist+rolllist):
+                leftfoot = not realleftfoot # multiple arrows it won't screw up step order
             lastmove = b
         new.append(temp)
     return new
