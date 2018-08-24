@@ -30,13 +30,13 @@ except ImportError: # Python 3
 
 # ~~~~~ Configure these settings! ~~~~~
 gamemode = "dance_single" # the only gamemode right now, will default if unknown
-afronova_off = False # disables afronova walk (hopefully i'll make it a chance later)
+#afronova_off = False # disables afronova walk (hopefully i'll make it a chance later)
 random = False # completely random arrows, ignores patterns
 overwrite_with_hold_ends = False # if hold end gets in the way of algorithm, overwrite the note that would be there (False means that it will try to move the arrow to another spot)
 
 # Weights: Configure how often you want certain patterns to occur as a decimal
 # Note that if conditions are unmet for a pattern to occur, it will ignore the pattern (meaning it may happen less than expected)
-crossovers = 0.1
+crossovers = 0.00
 spins = 0.00 # this doesn't necessarily mean a full spin
 footswitches = 0.00
 jacks = 0.00
@@ -94,6 +94,7 @@ def generate(note):
     realleftfoot = leftfoot
     lastset = [1,0,0,0] # and make this the other one
     fullholdlist = []
+    lastp = []
     for a in range(len(note)):
         temp = []
         lastmove = -1
@@ -173,7 +174,7 @@ def generate(note):
                                     tmpft = [x for x in range(0,4) if x not in nextlist]
                                     next = [choice(tmpft)]
                                 else:
-                                    if 3 in next:
+                                    if 0 in next:
                                         next.remove(0)
                                     if L in next:
                                         next.remove(L)
@@ -197,12 +198,26 @@ def generate(note):
                             if leftfoot and R != 3:
                                 if 3 not in nextlist and L != 3:
                                     next = [3]
+                                elif L == 3:
+                                    if 3 in next:
+                                        next.remove(3)
+                                    if L in next:
+                                        next.remove(L)
+                                    if R in next:
+                                        next.remove(R)
                                 else:
                                     tmpft = [x for x in range(0,4) if x not in nextlist]
                                     next = [choice(tmpft)]
                             elif not leftfoot and L != 0:
                                 if 0 not in nextlist and R != 0:
                                     next = [0]
+                                elif R == 0:
+                                    if 0 in next:
+                                        next.remove(0)
+                                    if L in next:
+                                        next.remove(L)
+                                    if R in next:
+                                        next.remove(R)
                                 else:
                                     tmpft = [x for x in range(1,4) if x not in nextlist]
                                     next = [choice(tmpft)]
@@ -321,9 +336,9 @@ def generate(note):
                                         next.remove(R)
                     elif p == 'jacks':
                         if leftfoot: # do left again
-                            next = [L]
-                        else: # right again
                             next = [R]
+                        else: # right again
+                            next = [L]
                     elif p == 'repeats':
                         if leftfoot: # do last left
                             next = [L]
@@ -334,16 +349,16 @@ def generate(note):
                         n = randint(0,len(next)-1)
                 nextlist.append(next[n])
                 if leftfoot:
-                    if next[n] == R:
-                        print(a, b, p, next, n, L, R)
-                    if L != 3:
+                    if next[n] == R and not random: # prints debug info because this should never happen
+                        print("Sideways footswitch warning: ", a, b, p, lastp, next, n, L, R)
+                    if L != 3 and L != 0:
                         Lsafe = L
                     Llast = L
                     L = next[n]
                 else:
-                    if next[n] == L:
-                        print(a, b, p, next, n, L, R)
-                    if R != 0:
+                    if next[n] == L and not random: # prints debug info because this should never happen
+                        print("Sideways footswitch warning: ", a, b, p, lastp, next, n, L, R)
+                    if R != 0 and R != 3:
                         Rsafe = R
                     Rlast = R
                     R = next[n]
@@ -392,7 +407,6 @@ def num_to_arr(nextlist, holdlist, endlist, minelist, rolllist, fullholdlist):
                         array[choice(zeroes)] = "M"
         else:
             array[m] = "M"
-    #if len(endlist): print("endlist", endlist)
     for k in endlist:
         if len(nextlist+fullholdlist+rolllist+minelist):
             for i in nextlist+fullholdlist+rolllist+minelist:
@@ -459,7 +473,7 @@ print("File opened.")
 simlines = f.readlines()
 
 notes = get_notes(simlines) # convert notes split into arrays of measures split into arrays of beats
-print(notes)
+#print(notes)
 
 newchart = generate(notes)
 
