@@ -11,6 +11,12 @@
     
     Pump stepcharts are also planned, for 6-panel and 9-panel not sure because I have no clue how the patterns work in those games.
     Once I have implemented multiple gamemodes you will be able to convert existing charts into the gamemode of your choice.
+
+    Command line support has been added and works as such:
+    ```
+    python stepbot.py -i <input file> -o <output file>
+    ```
+    If you are missing any it will prompt you (the original way to get files).
 '''
 
 # stuff to make compatible with Python 2 and 3
