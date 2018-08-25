@@ -44,12 +44,15 @@ gamemode = "dance-single" # the only gamemode right now, will default if unknown
 random = False # completely random arrows, ignores patterns
 overwrite_with_hold_ends = False # if hold end gets in the way of algorithm, overwrite the note that would be there (False means that it will try to move the arrow to another spot)
 
+#same_note_limit = 3 # configure how many of the same note can happen in a row (such that footswitches and jacks are disabled)
+disable_footswitches_with_jacks = True # disable footswitches and jacks occurring one after the other
+
 # Weights: Configure how often you want certain patterns to occur as a decimal
 # Note that if conditions are unmet for a pattern to occur, it will ignore the pattern (meaning it may happen less than expected)
 crossovers = 0.1
 spins = 0.00 # this doesn't necessarily mean a full spin
 footswitches = 0.00
-jacks = 0.00
+jacks = 0.1
 repeats = 0.1 # drills, triples, etc.
 
 # Disable patterns at certain fraction
@@ -124,6 +127,7 @@ def generate(note):
             minelist = []
             realleftfoot = leftfoot
             if float(b-lastmove)/len(note[a]) <= (1/fthreshold) and (b-lastmove) >= 0: # if fraction threshold passed disable stuff
+                print("it happened")
                 f_c = fdisable_crossovers
                 f_s = fdisable_spins
                 f_f = fdisable_footswitches
@@ -131,6 +135,11 @@ def generate(note):
                 f_r = fdisable_repeats
             else:
                 f_c = f_s = f_f = f_j = f_r = False
+            if disable_footswitches_with_jacks:
+                if lastp == ['footswitches']:
+                    f_j = True
+                elif lastp == ['jacks']:
+                    f_f = True
             for c in range(note[a][b].count('1')+note[a][b].count('2')+note[a][b].count('4')): # gets all arrows
                 next = [0,1,2,3]
                 for d in nextlist:
@@ -377,8 +386,7 @@ def generate(note):
                         Rsafe = R
                     Rlast = R
                     R = next[n]
-                if p != ['jacks']:
-                    leftfoot = not leftfoot
+                leftfoot = not leftfoot
             for e in range(note[a][b].count('2')): # holds
                 if nextlist[e] in fullholdlist:
                     tmphold = [x for x in range(0,4) if x not in nextlist]

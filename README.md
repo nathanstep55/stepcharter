@@ -1,4 +1,4 @@
-#Stepcharter
+# Stepcharter
 by Nathan Stephenson
 
 Stepcharter (originally StepBot) is a Python 2/3 program that will automatically generate stepchart patterns for your StepMania charts based on existing arrows.
