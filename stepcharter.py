@@ -1,22 +1,26 @@
 # -*- coding: utf-8 -*-
 
 '''
-    StepBot, by Nathan Stephenson.
+    Stepcharter, by Nathan Stephenson.
     
-    StepBot is a Python 2/3 program that will automatically generate stepchart patterns for your StepMania charts based on existing rhythm.
+    Stepcharter (originally StepBot) is a Python 2/3 program that will automatically generate stepchart patterns for your StepMania charts based on existing arrows.
     This program ensures that your steps won't be repetitive, while maintaining the correct rhythm and cues in a song that full chart generators often miss.
+    You can use this to make charts more efficiently and also to convert charts between gamemodes.
     
     Compatible with .ssc and .sm files, however only the 0,1,2,3,4,M notes will survive at the moment (this will be fixed soon).
     Also supports only one difficulty at the moment, but I will work on fixing that.
     
-    Pump stepcharts are also planned, for 6-panel and 9-panel not sure because I have no clue how the patterns work in those games.
-    Once I have implemented multiple gamemodes you will be able to convert existing charts into the gamemode of your choice.
+    Stepcharter now supports converting ALL StepMania gamemodes to dance-single.
+    It will automatically detect the current gamemode and switch it to dance-single, generating new arrows.
+
+    As of now, dance-single is the only gamemode that can be generated, but support for all gamemodes is planned (including keyboard charts).
+    If anyone can explain 6-panel and 9-panel patterns, feel free to send me a message.
 
     Command line support has been added and works as such:
     ```
-    python stepbot.py -i <input file> -o <output file>
+    python stepcharter.py -i <input file> -o <output file>
     ```
-    If you are missing any it will prompt you (the original way to get files).
+    If you are missing any it will prompt you through Open/Save windows.
 '''
 
 # stuff to make compatible with Python 2 and 3
@@ -35,14 +39,14 @@ except ImportError: # Python 3
     from tkinter import filedialog
 
 # ~~~~~ Configure these settings! ~~~~~
-gamemode = "dance_single" # the only gamemode right now, will default if unknown
+gamemode = "dance-single" # the only gamemode right now, will default if unknown
 #afronova_off = False # disables afronova walk (hopefully i'll make it a chance later)
 random = False # completely random arrows, ignores patterns
 overwrite_with_hold_ends = False # if hold end gets in the way of algorithm, overwrite the note that would be there (False means that it will try to move the arrow to another spot)
 
 # Weights: Configure how often you want certain patterns to occur as a decimal
 # Note that if conditions are unmet for a pattern to occur, it will ignore the pattern (meaning it may happen less than expected)
-crossovers = 0.00
+crossovers = 0.1
 spins = 0.00 # this doesn't necessarily mean a full spin
 footswitches = 0.00
 jacks = 0.00
@@ -64,33 +68,38 @@ normal = 1 - crossovers - spins - footswitches - repeats
 if normal > 1 or normal < 0:
     sys.exit("Error: Your weights are invalid. Please make sure that they all add up to a number in between 0 and 1.")
 
+gms = {
+    "dance-single": 4,
+    "pump-single": 5,
+    "solo": 6,
+    "dance-double": 8, 
+    "technomotion": 9,
+    "pump-double": 10
+}
+
 def get_notes(sim): # modified from jmania and is simpler because python is wayyy better
     note = []
+    tempgm = ""
     for i in range(len(sim)):
-        if "#NOTES:" in sim[i]: # to make multiple difficulties you would have to check for the next difficulty and replace len(sim) in the next for loop
+        if "#STEPSTYPE:" in sim[i]: # probably only works with ssc
+            tempgm = sim[i].replace("#STEPSTYPE:", "").replace(";", "").replace('\n', '').replace('\r', '')
+        elif "#NOTES:" in sim[i]: # to make multiple difficulties you would have to check for the next difficulty and replace len(sim) in the next for loop
             notestr = ""
             for a in range(i+1,len(sim)):
                 if "     " not in sim[a]:
                     notestr += sim[a].replace(";", "").replace('\n', '').replace('\r', '')
             noteslist = notestr.split(",")
             for b in range(len(noteslist)):
-                n = get_gm_num(gamemode)
+                n = get_gm_num(tempgm)
                 note.append([noteslist[b][i:i+n] for i in range(0, len(noteslist[b]), n)]) # splits every n arrows into separate strings
             return note
     return note
     
 def get_gm_num(gm): # how many arrows per gamemode
-    gms = {
-        "dance_single": 4,
-        "pump_single": 5,
-        "solo": 6,
-        "dance_double": 8, 
-        "technomotion": 9,
-        "pump_double": 10
-    }
-    if gms[gm]:
+    try:
         return gms[gm]
-    else:
+    except:
+        print("Could not determine gamemode, defaulting to 4 arrows")
         return 4
 
 def generate(note):
@@ -105,7 +114,7 @@ def generate(note):
         temp = []
         lastmove = -1
         for b in range(len(note[a])):
-            if note[a][b] == "0000":
+            if note[a][b] == len(note[a][b]) * note[a][b][0]:
                 temp.append("0000")
                 continue
             nextlist = []
@@ -439,6 +448,9 @@ def num_to_arr(nextlist, holdlist, endlist, minelist, rolllist, fullholdlist):
 def export(sim, new, path):
     e = codecs.open(path, 'w', encoding='UTF-8')
     for i in range(len(sim)):
+        for key in gms.keys():
+            if key in sim[i]:
+                sim[i] = sim[i].replace(key, gamemode)
         e.write(sim[i])
         if "#NOTES:" in sim[i]:
             for a in range(i+1,len(sim)):
@@ -456,40 +468,44 @@ def export(sim, new, path):
             break
     e.close()
 
-parser = argparse.ArgumentParser(description='Process some integers.')
-parser.add_argument('-i', action="store", dest="input", help='The input simfile to modify')
-parser.add_argument('-o', action="store", dest="output", help='The output simfile to export')
+def main():
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('-i', action="store", dest="input", help='The input simfile to modify')
+    parser.add_argument('-o', action="store", dest="output", help='The output simfile to export')
 
-args = parser.parse_args()
+    args = parser.parse_args()
 
-if args.input == None or args.output == None:
-    root = Tk()
-    root.withdraw()
+    if args.input == None or args.output == None:
+        root = Tk()
+        root.withdraw()
 
-if args.input != None:
-    path = args.input
-else:
-    path = filedialog.askopenfilename()
-    if path == '':
-        sys.exit("Canceled.")
+    if args.input != None:
+        path = args.input
+    else:
+        path = filedialog.askopenfilename()
+        if path == '':
+            sys.exit("Canceled.")
 
-f = codecs.open(path, 'r', encoding='UTF-8')
-print("File opened.")
+    f = codecs.open(path, 'r', encoding='UTF-8')
+    print("File opened.")
 
-simlines = f.readlines()
+    simlines = f.readlines()
 
-notes = get_notes(simlines) # convert notes split into arrays of measures split into arrays of beats
-#print(notes)
+    notes = get_notes(simlines) # convert notes split into arrays of measures split into arrays of beats
+    #print(notes)
 
-newchart = generate(notes)
+    newchart = generate(notes)
 
-if args.output != None:
-    path2 = args.output
-else:
-    path2 = filedialog.asksaveasfilename()
-    if path2 == '':
-        sys.exit("Canceled.")
+    if args.output != None:
+        path2 = args.output
+    else:
+        path2 = filedialog.asksaveasfilename()
+        if path2 == '':
+            sys.exit("Canceled.")
 
-export(simlines, newchart, path2)
-f.close()
-print("Exported as simfile " + path2)
+    export(simlines, newchart, path2)
+    f.close()
+    print("Exported as simfile " + path2)
+
+if __name__ == "__main__":
+    main()
