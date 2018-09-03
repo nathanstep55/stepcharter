@@ -131,7 +131,6 @@ def main():
         gm_module = import_module("dancesingle")
 
     generate = getattr(gm_module, "generate")
-    num_to_arr = getattr(gm_module, "num_to_arr")
 
     simlines = f.readlines()
 
