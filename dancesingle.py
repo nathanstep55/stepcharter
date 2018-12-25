@@ -46,7 +46,7 @@ fdisable_repeats = False
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-normal = 1 - crossovers - spins - footswitches - repeats
+normal = 1 - crossovers - spins - footswitches - repeats - jacks
 
 if normal > 1 or normal < 0:
     sys.exit("Error: Your weights are invalid. Please make sure that they all add up to a number in between 0 and 1.")

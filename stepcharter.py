@@ -40,7 +40,7 @@ except ImportError: # Python 3
     from tkinter import filedialog
 
 # ~~~~~ Configure these settings! ~~~~~
-gamemode = "dance-single" # the only gamemode right now, will default if unknown
+gamemode = "pump-single" # the only gamemode right now, will default if unknown
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 gms = {
@@ -127,7 +127,7 @@ def main():
     try:
         gm_module = import_module(gms[gamemode][1])
     except: # default to dancesingle
-        print("Could not determine gamemode, defaulting to dancesingle")
+        print("Could not find or execute code for specified gamemode, defaulting to dancesingle")
         gm_module = import_module("dancesingle")
 
     generate = getattr(gm_module, "generate")
@@ -137,7 +137,8 @@ def main():
     notes = get_notes(simlines) # convert notes split into arrays of measures split into arrays of beats
     #print(notes)
 
-    newchart = generate(notes)
+    seed = None # for now but make sure this becomes an argparse
+    newchart = generate(notes, seed)
 
     if args.output != None:
         path2 = args.output
